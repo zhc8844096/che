@@ -632,6 +632,7 @@ public class ProcessesPanelPresenter extends BasePresenter
           break;
         case TERMINAL_NODE:
           terminals.get(nodeId);
+          // fall through
         default:
           view.showProcessOutput(nodeId);
           refreshStopButtonState(nodeId);
