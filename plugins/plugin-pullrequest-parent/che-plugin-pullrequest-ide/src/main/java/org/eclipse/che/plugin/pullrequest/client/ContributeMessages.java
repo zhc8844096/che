@@ -250,4 +250,11 @@ public interface ContributeMessages extends Messages {
 
   @Key("contributor.extension.default.commit.description")
   String contributorExtensionDefaultCommitDescription(String branchName, String contributionTitle);
+
+  // Switch contribute part action
+  @Key("action.switch.contribute.part.displaying.title")
+  String switchContributePartDisplayingTitle();
+
+  @Key("action.switch.contribute.part.displaying.description")
+  String switchContributePartDisplayingDescription();
 }
