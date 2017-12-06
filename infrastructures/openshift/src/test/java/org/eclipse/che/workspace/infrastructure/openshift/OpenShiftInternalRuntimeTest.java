@@ -142,6 +142,7 @@ public class OpenShiftInternalRuntimeTest {
             eventService,
             bootstrapperFactory,
             serverCheckerFactory,
+            null,
             context,
             project,
             emptyList());

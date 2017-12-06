@@ -95,7 +95,7 @@ public class UniqueWorkspacePVCStrategyTest {
   public void setup() throws Exception {
     uniqueWorkspacePVCStrategy =
         new UniqueWorkspacePVCStrategy(
-            PROJECT_NAME, PVC_NAME, PVC_QUANTITY, PVC_ACCESS_MODE, clientFactory, factory);
+            PROJECT_NAME, PVC_NAME, PVC_QUANTITY, PVC_ACCESS_MODE, clientFactory);
     when(clientFactory.create()).thenReturn(client);
 
     Map<String, InternalMachineConfig> machines = new HashMap<>();
