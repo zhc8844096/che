@@ -13,8 +13,10 @@ package org.eclipse.che.plugin.java.languageserver;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.che.api.languageserver.service.LanguageServiceUtils.prefixURI;
+import static org.eclipse.che.api.languageserver.service.LanguageServiceUtils.removePrefixUri;
 import static org.eclipse.che.ide.ext.java.shared.Constants.EFFECTIVE_POM_REQUEST_TIMEOUT;
 import static org.eclipse.che.ide.ext.java.shared.Constants.FILE_STRUCTURE_REQUEST_TIMEOUT;
+import static org.eclipse.che.ide.ext.java.shared.Constants.REIMPORT_MAVEN_PROJECTS_REQUEST_TIMEOUT;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.FILE_STRUCTURE_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.FIND_TESTS_FROM_ENTRY_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.FIND_TESTS_FROM_FOLDER_COMMAND;
@@ -23,6 +25,7 @@ import static org.eclipse.che.jdt.ls.extension.api.Commands.FIND_TESTS_IN_FILE_C
 import static org.eclipse.che.jdt.ls.extension.api.Commands.FIND_TEST_BY_CURSOR_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.GET_EFFECTIVE_POM_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.GET_OUTPUT_DIR_COMMAND;
+import static org.eclipse.che.jdt.ls.extension.api.Commands.REIMPORT_MAVEN_PROJECTS_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.RESOLVE_CLASSPATH_COMMAND;
 import static org.eclipse.che.jdt.ls.extension.api.Commands.TEST_DETECT_COMMAND;
 
@@ -34,6 +37,7 @@ import com.google.inject.Inject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +50,7 @@ import org.eclipse.che.api.languageserver.registry.LanguageServerRegistry;
 import org.eclipse.che.api.languageserver.service.LanguageServiceUtils;
 import org.eclipse.che.jdt.ls.extension.api.dto.ExtendedSymbolInformation;
 import org.eclipse.che.jdt.ls.extension.api.dto.FileStructureCommandParameters;
+import org.eclipse.che.jdt.ls.extension.api.dto.ReImportMavenProjectsCommandParameters;
 import org.eclipse.che.jdt.ls.extension.api.dto.TestFindParameters;
 import org.eclipse.che.jdt.ls.extension.api.dto.TestPosition;
 import org.eclipse.che.jdt.ls.extension.api.dto.TestPositionParameters;
@@ -100,6 +105,13 @@ public class JavaLanguageServerExtensionService {
         .paramsAsString()
         .resultAsString()
         .withFunction(this::getEffectivePom);
+
+    requestHandler
+        .newConfiguration()
+        .methodName("java/reimport-maven-projects")
+        .paramsAsDto(ReImportMavenProjectsCommandParameters.class)
+        .resultAsListOfString()
+        .withFunction(this::reImportMavenProjects);
   }
 
   /**
@@ -297,6 +309,46 @@ public class JavaLanguageServerExtensionService {
     } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
       throw new JsonRpcException(-27000, e.getMessage());
     }
+  }
+
+  /**
+   * Updates given maven projects.
+   *
+   * @param parameters dto with list of paths to projects (relatively to projects root (e.g.
+   *     /projects)) which should be re-imported.
+   * @return list of paths (relatively to projects root) to projects which were updated.
+   */
+  public List<String> reImportMavenProjects(ReImportMavenProjectsCommandParameters parameters) {
+    final List<String> projectsToReImport = parameters.getProjectsToUpdate();
+    if (projectsToReImport.isEmpty()) {
+      return emptyList();
+    }
+
+    ListIterator<String> iterator = projectsToReImport.listIterator();
+    while (iterator.hasNext()) {
+      iterator.set(prefixURI(iterator.next()));
+    }
+
+    CompletableFuture<Object> requestResult =
+        executeCommand(REIMPORT_MAVEN_PROJECTS_COMMAND, singletonList(parameters));
+
+    final List<String> result;
+    Type targetClassType = new TypeToken<ArrayList<String>>() {}.getType();
+    try {
+      result =
+          gson.fromJson(
+              gson.toJson(
+                  requestResult.get(REIMPORT_MAVEN_PROJECTS_REQUEST_TIMEOUT, TimeUnit.SECONDS)),
+              targetClassType);
+    } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
+      throw new JsonRpcException(-27000, e.getMessage());
+    }
+
+    iterator = result.listIterator();
+    while (iterator.hasNext()) {
+      iterator.set(removePrefixUri(iterator.next()));
+    }
+    return result;
   }
 
   private List<String> executeFindTestsCommand(
