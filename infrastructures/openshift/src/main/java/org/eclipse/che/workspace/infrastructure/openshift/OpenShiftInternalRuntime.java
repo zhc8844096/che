@@ -265,33 +265,6 @@ public class OpenShiftInternalRuntime extends InternalRuntime<OpenShiftRuntimeCo
     }
   }
 
-  private class ServerReadinessHandler implements Consumer<String> {
-    private String machineName;
-
-    ServerReadinessHandler(String machineName) {
-      this.machineName = machineName;
-    }
-
-    @Override
-    public void accept(String serverRef) {
-      final OpenShiftMachine machine = machines.get(machineName);
-      if (machine == null) {
-        // Probably machine was removed from the list during server check start due to some reason
-        return;
-      }
-
-      machine.setStatus(serverRef, ServerStatus.RUNNING);
-
-      eventService.publish(
-          DtoFactory.newDto(ServerStatusEvent.class)
-              .withIdentity(DtoConverter.asDto(getContext().getIdentity()))
-              .withMachineName(machineName)
-              .withServerName(serverRef)
-              .withStatus(ServerStatus.RUNNING)
-              .withServerUrl(machine.getServers().get(serverRef).getUrl()));
-    }
-  }
-
   private void sendStartingEvent(String machineName) {
     eventService.publish(
         DtoFactory.newDto(MachineStatusEvent.class)
@@ -365,6 +338,33 @@ public class OpenShiftInternalRuntime extends InternalRuntime<OpenShiftRuntimeCo
               format("Pod '%s' was abnormally stopped", pod.getMetadata().getName()));
         }
       }
+    }
+  }
+
+  private class ServerReadinessHandler implements Consumer<String> {
+    private String machineName;
+
+    ServerReadinessHandler(String machineName) {
+      this.machineName = machineName;
+    }
+
+    @Override
+    public void accept(String serverRef) {
+      final OpenShiftMachine machine = machines.get(machineName);
+      if (machine == null) {
+        // Probably machine was removed from the list during server check start due to some reason
+        return;
+      }
+
+      machine.setStatus(serverRef, ServerStatus.RUNNING);
+
+      eventService.publish(
+          DtoFactory.newDto(ServerStatusEvent.class)
+              .withIdentity(DtoConverter.asDto(getContext().getIdentity()))
+              .withMachineName(machineName)
+              .withServerName(serverRef)
+              .withStatus(ServerStatus.RUNNING)
+              .withServerUrl(machine.getServers().get(serverRef).getUrl()));
     }
   }
 }
