@@ -91,7 +91,7 @@ public class CommonPVCStrategyTest {
   @BeforeMethod
   public void setup() throws Exception {
     commonPVCStrategy =
-        new CommonPVCStrategy(PVC_NAME, PVC_QUANTITY, PVC_ACCESS_MODE, pvcSubPathHelper);
+        new CommonPVCStrategy(PVC_NAME, PVC_QUANTITY, PVC_ACCESS_MODE, true, pvcSubPathHelper);
 
     Map<String, InternalMachineConfig> machines = new HashMap<>();
     InternalMachineConfig machine1 = mock(InternalMachineConfig.class);

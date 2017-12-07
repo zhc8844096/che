@@ -48,6 +48,7 @@ public class CommonPVCStrategy implements WorkspaceVolumesStrategy {
 
   public static final String COMMON_STRATEGY = "common";
 
+  private final boolean preCreateDirs;
   private final String pvcQuantity;
   private final String pvcName;
   private final String pvcAccessMode;
@@ -58,10 +59,12 @@ public class CommonPVCStrategy implements WorkspaceVolumesStrategy {
       @Named("che.infra.openshift.pvc.name") String pvcName,
       @Named("che.infra.openshift.pvc.quantity") String pvcQuantity,
       @Named("che.infra.openshift.pvc.access_mode") String pvcAccessMode,
+      @Named("che.infra.openshift.pvc.precreate_subpaths") boolean preCreateDirs,
       PVCSubPathHelper pvcSubPathHelper) {
     this.pvcName = pvcName;
     this.pvcQuantity = pvcQuantity;
     this.pvcAccessMode = pvcAccessMode;
+    this.preCreateDirs = preCreateDirs;
     this.pvcSubPathHelper = pvcSubPathHelper;
   }
 
@@ -79,7 +82,7 @@ public class CommonPVCStrategy implements WorkspaceVolumesStrategy {
         addMachineVolumes(workspaceId, subPaths, podSpec, container, machineConfig);
       }
     }
-    if (!subPaths.isEmpty()) {
+    if (preCreateDirs && !subPaths.isEmpty()) {
       pvc.setAdditionalProperty(
           format(SUBPATHS_PROPERTY_FMT, workspaceId),
           subPaths.toArray(new String[subPaths.size()]));
